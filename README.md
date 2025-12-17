@@ -1,181 +1,152 @@
-# Tutor Marketplace – Decentralized Application
+# Tutor Marketplace DApp 🎓
 
-A decentralized tutoring marketplace where students can book online sessions with tutors.  
-Payments are held in **escrow on Ethereum** and released when sessions are confirmed as completed, or handled through a dispute flow.
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Implemented Features](#implemented-features)
-- [Architecture](#architecture)
-  - [Actors and Roles](#actors-and-roles)
-  - [System Overview](#system-overview)
-- [Implemented Process Flows](#implemented-process-flows)
-  - [1. Session Request & Escrow Deposit](#1-session-request--escrow-deposit)
-  - [2. Tutor Decision (Accept / Reject)](#2-tutor-decision-accept--reject)
-  - [3. Session Delivery & Settlement](#3-session-delivery--settlement)
-  - [4. Dispute Handling](#4-dispute-handling)
-  - [5. Sequence Diagram – Textual Mapping](#5-sequence-diagram--textual-mapping)
-- [Smart Contract Events](#smart-contract-events)
-- [Tech Stack](#tech-stack)
-- [Notes & Next Steps](#notes--next-steps)
+A decentralized tutor marketplace built with **Solidity** and **React**, where students can securely book tutoring sessions, tutors can manage requests, and payments are handled transparently through smart contracts with dispute resolution by an admin.
 
 ---
 
-## Overview
+## 📌 Overview
 
-Tutor Marketplace is a decentralized platform that enables students to request online tutoring sessions with tutors.
+This project is a **blockchain-based tutoring platform** that removes the need for trust between students and tutors by using an **escrow smart contract**.
 
-A **smart contract on the Ethereum blockchain** manages:
-
-- Escrowed payments for sessions
-- Session lifecycle state changes (request → accept/reject → complete → confirm)
-- Dispute lifecycle state changes (open → resolved)
-
-A **DApp** provides a simple web UI that interacts with the contract (e.g., MetaMask transactions).
-
----
-
-## Implemented Features
-
-✅ **Escrow-based session requests**
-- Student requests a session and deposits ETH into the contract escrow.
-
-✅ **Tutor decision flow**
-- Tutor can accept or reject a session request.
-- If rejected, the student is refunded.
-
-✅ **Session completion + student confirmation**
-- Tutor marks the session as completed.
-- Student confirms completion.
-- Funds are released to the tutor upon confirmation.
-
-✅ **Dispute lifecycle (recorded on-chain)**
-- Student can open a dispute.
-- Dispute can be resolved (decision recorded on-chain).
-
-> Note: This README reflects only the functionality currently implemented.
+### Key Features
+- Students book tutoring sessions with upfront payment
+- Tutors can accept or reject session requests
+- Payments are held in escrow until the session is completed
+- Students confirm completion or open disputes
+- Admin resolves disputes fairly on-chain
+- Fully decentralized payment flow using Ethereum
 
 ---
 
-## Architecture
+## 🧠 Roles in the System
 
-### Actors and Roles
+### 👨‍🎓 Student
+- Requests a tutoring session
+- Pays upfront (held in escrow)
+- Confirms completion or opens a dispute
 
-#### 1. Student
-**Role:** Requests tutoring sessions and pays into escrow.
+### 👩‍🏫 Tutor
+- Accepts or rejects session requests
+- Conducts tutoring session
+- Marks session as completed
 
-**Responsibilities:**
-- Request a session and deposit payment into escrow
-- Confirm session completion
-- Open a dispute if needed
-
-#### 2. Tutor
-**Role:** Accepts/rejects requests and delivers sessions off-chain.
-
-**Responsibilities:**
-- Accept or reject incoming session requests
-- Mark the session as completed after delivery
-
-#### 3. Admin
-**Role:** Resolves disputes (decision logged on-chain).
-
-**Responsibilities:**
-- Resolve disputes by recording a decision in the contract
+### 🛡️ Admin
+- Handles disputes
+- Decides whether funds go to the tutor or are refunded to the student
 
 ---
 
-### System Overview
+## 🔄 Session Lifecycle (Workflow)
 
-- Student deposits ETH into the smart contract to create a session request (escrow).
-- Tutor responds by accepting or rejecting.
-- If accepted, tutoring happens **off-chain** (Zoom/Meet/etc.).
-- Tutor marks the session as completed on-chain.
-- Student confirms completion on-chain, triggering payment release.
-- If something goes wrong, a dispute can be opened and later resolved.
+1. **Student requests a session**
+   - Student selects a tutor and topic
+   - Student sends ETH as payment
+   - Session status → `Requested`
 
----
+2. **Tutor responds**
+   - Tutor **accepts** → status `Accepted`
+   - Tutor **rejects** → student is refunded immediately
 
-## Implemented Process Flows
+3. **Tutor completes session**
+   - Tutor marks session as completed
+   - Status → `Completed`
 
-### 1. Session Request & Escrow Deposit
+4. **Student action**
+   - Student **confirms session** → tutor is paid
+   - OR student **opens a dispute**
 
-1. Student selects a tutor and submits a session request.
-2. Student deposits the session payment into the smart contract (escrow).
-3. Contract emits an event indicating the session was requested.
-
----
-
-### 2. Tutor Decision (Accept / Reject)
-
-**Tutor accepts:**
-- Session moves to an accepted state.
-- Contract emits `SessionAccepted`.
-
-**Tutor rejects:**
-- Contract refunds the student.
-- Contract emits `SessionRejected`.
+5. **Admin resolves dispute**
+   - Admin decides:
+     - Refund student **OR**
+     - Pay tutor
+   - Status → `Resolved`
 
 ---
 
-### 3. Session Delivery & Settlement
+## 📜 Smart Contract Details
 
-1. Tutor delivers the tutoring session off-chain.
-2. Tutor marks the session as completed on-chain.
-3. Student confirms the session completion on-chain.
-4. Contract releases escrow funds to the tutor.
+### Contract Name
+`TutorMarketplace.sol`
 
----
-
-### 4. Dispute Handling
-
-1. Student opens a dispute on-chain.
-2. Contract emits `DisputeOpened`.
-3. Admin resolves the dispute on-chain (decision recorded).
-4. Contract emits `DisputeResolved`.
-
-> Note: This README documents the dispute open/resolve lifecycle as implemented (event/log level + state changes).
-
----
-
-### 5. Sequence Diagram – Textual Mapping
-
-1. **Student → Smart Contract:** `Request session + deposit payment`
-2. **(Event):** `SessionRequested`
-
-3a. **Tutor → Smart Contract:** `Accept session`  
-- **(Event):** `SessionAccepted`
-
-3b. **Tutor → Smart Contract:** `Reject session`  
-- **(Event):** `SessionRejected`  
-- **Smart Contract → Student:** `Refund payment`
-
-4. **Tutor → Smart Contract:** `Mark session completed`  
-- **(Event):** `SessionCompleted`
-
-5. **Student → Smart Contract:** `Confirm completion`  
-- **(Event):** `SessionConfirmed`  
-- **Smart Contract → Tutor:** `Release payment`
-
-6. **Student → Smart Contract:** `Open dispute`  
-- **(Event):** `DisputeOpened`
-
-7. **Admin → Smart Contract:** `Resolve dispute`  
-- **(Event):** `DisputeResolved`
-
----
-
-## Smart Contract Events
-
-The contract currently emits the following events:
-
+### Solidity Version
 ```solidity
-event SessionRequested(uint id, address student, address tutor, uint amount);
-event SessionAccepted(uint id);
-event SessionRejected(uint id);
-event SessionCompleted(uint id);
-event SessionConfirmed(uint id);
-event DisputeOpened(uint id);
-event DisputeResolved(uint id, string decision);
+pragma solidity ^0.8.0;
+```
+
+### Session Status Enum
+```solidity
+enum SessionStatus {
+  Requested,
+  Accepted,
+  Completed,
+  Confirmed,
+  Disputed,
+  Resolved
+}
+```
+
+### Session Structure
+```solidity
+struct Session {
+    uint id;
+    address payable student;
+    address payable tutor;
+    uint amount;
+    SessionStatus status;
+    string topic;
+}
+```
+
+---
+
+## 🔑 Core Smart Contract Functions
+
+| Function | Called By | Description |
+|--------|----------|-------------|
+| `requestSession` | Student | Create a session and lock ETH payment |
+| `acceptSession` | Tutor | Accept a session request |
+| `rejectSession` | Tutor | Reject request and refund student |
+| `markCompleted` | Tutor | Mark session as completed |
+| `confirmSession` | Student | Release funds to tutor |
+| `openDispute` | Student | Open dispute after completion |
+| `resolveDispute` | Admin | Decide payout or refund |
+
+---
+
+## 🔐 Security & Trust Model
+
+- Funds are **locked in the smart contract**
+- No funds are released without valid state transitions
+- Role-based access enforced via `require()`
+- Admin-only dispute resolution
+- Uses Solidity `transfer()` for ETH payouts
+
+---
+
+## 🖥️ Frontend (React)
+
+The React frontend interacts with the smart contract using **MetaMask**.
+
+### Frontend Capabilities
+- Wallet connection
+- Student dashboard
+- Tutor dashboard
+- Admin dispute panel
+- Real-time session status tracking
+
+### Tech Stack
+- React
+- Ethers.js / Web3.js
+- MetaMask
+- Solidity
+- Ethereum
+
+---
+## 📈 Future Enhancements
+
+- Tutor ratings & reviews
+- Partial refunds
+- Time-based auto settlement
+- ERC20 payments
+- DAO-based dispute resolution
+- IPFS session records
